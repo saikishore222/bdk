@@ -18,7 +18,6 @@ use std::collections::HashMap;
 use std::collections::{BTreeMap, HashSet};
 use std::fmt;
 use std::ops::{Deref, DerefMut};
-use std::str::FromStr;
 use std::sync::Arc;
 
 use bitcoin::secp256k1::Secp256k1;
@@ -55,8 +54,7 @@ use tx_builder::{BumpFee, CreateTx, FeePolicy, TxBuilder, TxParams};
 use utils::{check_nlocktime, check_nsequence_rbf, After, Older, SecpCtx};
 
 use crate::blockchain::{GetHeight, NoopProgress, Progress, WalletSync};
-use crate::database::memory::MemoryDatabase;
-use crate::database::{AnyDatabase, BatchDatabase, BatchOperations, DatabaseUtils, SyncTime};
+use crate::database::{BatchDatabase, BatchOperations, DatabaseUtils, SyncTime};
 use crate::descriptor::derived::AsDerived;
 use crate::descriptor::policy::BuildSatisfaction;
 use crate::descriptor::{
@@ -67,7 +65,6 @@ use crate::descriptor::{
 use crate::error::Error;
 use crate::psbt::PsbtUtils;
 use crate::signer::SignerError;
-use crate::testutils;
 use crate::types::*;
 
 const CACHE_ADDR_BATCH_SIZE: u32 = 100;
@@ -1589,6 +1586,12 @@ where
         self.database.borrow()
     }
 
+    #[cfg(test)]
+    /// Return an mutable reference to the internal database
+    pub(crate) fn database_mut(&self) -> impl std::ops::DerefMut<Target = D> + '_ {
+        self.database.borrow_mut()
+    }
+
     /// Sync the internal database with the blockchain
     #[maybe_async]
     pub fn sync<B: WalletSync + GetHeight>(
@@ -1670,56 +1673,18 @@ where
     Ok(wallet_name)
 }
 
-/// Return a fake wallet that appears to be funded for testing.
-pub fn get_funded_wallet(
-    descriptor: &str,
-) -> (Wallet<AnyDatabase>, (String, Option<String>), bitcoin::Txid) {
-    let descriptors = testutils!(@descriptors (descriptor));
-    let wallet = Wallet::new(
-        &descriptors.0,
-        None,
-        Network::Regtest,
-        AnyDatabase::Memory(MemoryDatabase::new()),
-    )
-    .unwrap();
-
-    let funding_address_kix = 0;
-
-    let tx_meta = testutils! {
-            @tx ( (@external descriptors, funding_address_kix) => 50_000 ) (@confirmations 1)
-    };
-
-    wallet
-        .database
-        .borrow_mut()
-        .set_script_pubkey(
-            &bitcoin::Address::from_str(&tx_meta.output.get(0).unwrap().to_address)
-                .unwrap()
-                .script_pubkey(),
-            KeychainKind::External,
-            funding_address_kix,
-        )
-        .unwrap();
-    wallet
-        .database
-        .borrow_mut()
-        .set_last_index(KeychainKind::External, funding_address_kix)
-        .unwrap();
-
-    let txid = crate::populate_test_db!(wallet.database.borrow_mut(), tx_meta, Some(100));
-
-    (wallet, descriptors, txid)
-}
-
 #[cfg(test)]
 pub(crate) mod test {
+    use std::str::FromStr;
+
     use bitcoin::{util::psbt, Network};
 
-    use crate::database::Database;
+    use crate::database::{AnyDatabase, Database, MemoryDatabase};
     use crate::types::KeychainKind;
 
     use super::*;
     use crate::signer::{SignOptions, SignerError};
+    use crate::testutils::helpers::{get_funded_wallet, populate_test_db};
     use crate::wallet::AddressIndex::{LastUnused, New, Peek, Reset};
 
     #[test]
@@ -2515,10 +2480,11 @@ pub(crate) mod test {
     #[test]
     fn test_create_tx_add_utxo() {
         let (wallet, descriptors, _) = get_funded_wallet(get_test_wpkh());
-        let small_output_txid = crate::populate_test_db!(
-            wallet.database.borrow_mut(),
+        let small_output_txid = populate_test_db(
+            &mut *wallet.database_mut(),
             testutils! (@tx ( (@external descriptors, 0) => 25_000 ) (@confirmations 1)),
-            Some(100),
+            100,
+            false,
         );
 
         let addr = Address::from_str("2N1Ffz3WaNzbeLFBb51xyFMHYSEUXcbiSoX").unwrap();
@@ -2544,10 +2510,11 @@ pub(crate) mod test {
     #[should_panic(expected = "InsufficientFunds")]
     fn test_create_tx_manually_selected_insufficient() {
         let (wallet, descriptors, _) = get_funded_wallet(get_test_wpkh());
-        let small_output_txid = crate::populate_test_db!(
-            wallet.database.borrow_mut(),
+        let small_output_txid = populate_test_db(
+            &mut *wallet.database_mut(),
             testutils! (@tx ( (@external descriptors, 0) => 25_000 ) (@confirmations 1)),
-            Some(100),
+            100,
+            false,
         );
 
         let addr = Address::from_str("2N1Ffz3WaNzbeLFBb51xyFMHYSEUXcbiSoX").unwrap();
@@ -3215,10 +3182,11 @@ pub(crate) mod test {
     fn test_bump_fee_drain_wallet() {
         let (wallet, descriptors, _) = get_funded_wallet(get_test_wpkh());
         // receive an extra tx so that our wallet has two utxos.
-        let incoming_txid = crate::populate_test_db!(
-            wallet.database.borrow_mut(),
+        let incoming_txid = populate_test_db(
+            &mut *wallet.database_mut(),
             testutils! (@tx ( (@external descriptors, 0) => 25_000 ) (@confirmations 1)),
-            Some(100),
+            100,
+            false,
         );
         let outpoint = OutPoint {
             txid: incoming_txid,
@@ -3272,10 +3240,11 @@ pub(crate) mod test {
         // told the wallet it's not allowed to add more inputs AND it can't reduce the value of the
         // existing output. In other words, bump_fee + manually_selected_only is always an error
         // unless you've also set "allow_shrinking" OR there is a change output.
-        let incoming_txid = crate::populate_test_db!(
-            wallet.database.borrow_mut(),
+        let incoming_txid = populate_test_db(
+            &mut *wallet.database_mut(),
             testutils! (@tx ( (@external descriptors, 0) => 25_000 ) (@confirmations 1)),
-            Some(100),
+            100,
+            false,
         );
         let outpoint = OutPoint {
             txid: incoming_txid,
@@ -3318,10 +3287,11 @@ pub(crate) mod test {
     #[test]
     fn test_bump_fee_add_input() {
         let (wallet, descriptors, _) = get_funded_wallet(get_test_wpkh());
-        crate::populate_test_db!(
-            wallet.database.borrow_mut(),
+        populate_test_db(
+            &mut *wallet.database_mut(),
             testutils! (@tx ( (@external descriptors, 0) => 25_000 ) (@confirmations 1)),
-            Some(100),
+            100,
+            false,
         );
 
         let addr = Address::from_str("2N1Ffz3WaNzbeLFBb51xyFMHYSEUXcbiSoX").unwrap();
@@ -3381,10 +3351,11 @@ pub(crate) mod test {
     #[test]
     fn test_bump_fee_absolute_add_input() {
         let (wallet, descriptors, _) = get_funded_wallet(get_test_wpkh());
-        crate::populate_test_db!(
-            wallet.database.borrow_mut(),
+        populate_test_db(
+            &mut *wallet.database_mut(),
             testutils! (@tx ( (@external descriptors, 0) => 25_000 ) (@confirmations 1)),
-            Some(100),
+            100,
+            false,
         );
 
         let addr = Address::from_str("2N1Ffz3WaNzbeLFBb51xyFMHYSEUXcbiSoX").unwrap();
@@ -3444,10 +3415,11 @@ pub(crate) mod test {
     #[test]
     fn test_bump_fee_no_change_add_input_and_change() {
         let (wallet, descriptors, _) = get_funded_wallet(get_test_wpkh());
-        let incoming_txid = crate::populate_test_db!(
-            wallet.database.borrow_mut(),
+        let incoming_txid = populate_test_db(
+            &mut *wallet.database_mut(),
             testutils! (@tx ( (@external descriptors, 0) => 25_000 ) (@confirmations 1)),
-            Some(100),
+            100,
+            false,
         );
 
         // initially make a tx without change by using `drain_to`
@@ -3521,10 +3493,11 @@ pub(crate) mod test {
     #[test]
     fn test_bump_fee_add_input_change_dust() {
         let (wallet, descriptors, _) = get_funded_wallet(get_test_wpkh());
-        crate::populate_test_db!(
-            wallet.database.borrow_mut(),
+        populate_test_db(
+            &mut *wallet.database_mut(),
             testutils! (@tx ( (@external descriptors, 0) => 25_000 ) (@confirmations 1)),
-            Some(100),
+            100,
+            false,
         );
 
         let addr = Address::from_str("2N1Ffz3WaNzbeLFBb51xyFMHYSEUXcbiSoX").unwrap();
@@ -3584,10 +3557,11 @@ pub(crate) mod test {
     #[test]
     fn test_bump_fee_force_add_input() {
         let (wallet, descriptors, _) = get_funded_wallet(get_test_wpkh());
-        let incoming_txid = crate::populate_test_db!(
-            wallet.database.borrow_mut(),
+        let incoming_txid = populate_test_db(
+            &mut *wallet.database_mut(),
             testutils! (@tx ( (@external descriptors, 0) => 25_000 ) (@confirmations 1)),
-            Some(100),
+            100,
+            false,
         );
 
         let addr = Address::from_str("2N1Ffz3WaNzbeLFBb51xyFMHYSEUXcbiSoX").unwrap();
@@ -3655,10 +3629,11 @@ pub(crate) mod test {
     #[test]
     fn test_bump_fee_absolute_force_add_input() {
         let (wallet, descriptors, _) = get_funded_wallet(get_test_wpkh());
-        let incoming_txid = crate::populate_test_db!(
-            wallet.database.borrow_mut(),
+        let incoming_txid = populate_test_db(
+            &mut *wallet.database_mut(),
             testutils! (@tx ( (@external descriptors, 0) => 25_000 ) (@confirmations 1)),
-            Some(100),
+            100,
+            false,
         );
 
         let addr = Address::from_str("2N1Ffz3WaNzbeLFBb51xyFMHYSEUXcbiSoX").unwrap();
@@ -3960,10 +3935,11 @@ pub(crate) mod test {
         );
 
         // use the above address
-        crate::populate_test_db!(
-            wallet.database.borrow_mut(),
+        populate_test_db(
+            &mut *wallet.database_mut(),
             testutils! (@tx ( (@external descriptors, 0) => 25_000 ) (@confirmations 1)),
-            Some(100),
+            100,
+            false,
         );
 
         assert_eq!(
@@ -4204,11 +4180,11 @@ pub(crate) mod test {
 
         let confirmation_time = 5;
 
-        crate::populate_test_db!(
-            wallet.database.borrow_mut(),
+        populate_test_db(
+            &mut *wallet.database_mut(),
             testutils! (@tx ( (@external descriptors, 0) => 25_000 ) (@confirmations 0)),
-            Some(confirmation_time),
-            (@coinbase true)
+            confirmation_time,
+            true,
         );
 
         let not_yet_mature_time = confirmation_time + COINBASE_MATURITY - 1;
