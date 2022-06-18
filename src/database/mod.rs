@@ -222,12 +222,12 @@ impl<T: Database> DatabaseUtils for T {}
 #[macro_export]
 #[doc(hidden)]
 macro_rules! make_tests {
-    ($($x:tt) , + $(,)?) => {
+    (@getter $fn_name:ident(), @tests ( $($x:tt) , + $(,)? )) => {
         $(
           #[test]
           fn $x()
           {
-            $crate::database::test::$x(get_tree());
+            $crate::database::test::$x($fn_name());
           }
         )+
     };

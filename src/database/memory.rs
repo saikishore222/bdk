@@ -491,57 +491,17 @@ mod test {
     }
 
     make_tests![
-        test_script_pubkey,
-        test_iter_script_pubkey,
-        test_del_script_pubkey,
-        test_utxo,
-        test_raw_tx,
-        test_tx,
-        test_last_index,
-        test_sync_time
+        @getter get_tree(),
+        @tests(
+            test_script_pubkey,
+            test_batch_script_pubkey,
+            test_iter_script_pubkey,
+            test_del_script_pubkey,
+            test_utxo,
+            test_raw_tx,
+            test_tx,
+            test_last_index,
+            test_sync_time
+        )
     ];
-    // #[test]
-    // fn test_script_pubkey() {
-    //     crate::database::test::test_script_pubkey(get_tree());
-    // }
-
-    // #[test]
-    // fn test_batch_script_pubkey() {
-    //     crate::database::test::test_batch_script_pubkey(get_tree());
-    // }
-
-    // #[test]
-    // fn test_iter_script_pubkey() {
-    //     crate::database::test::test_iter_script_pubkey(get_tree());
-    // }
-
-    // #[test]
-    // fn test_del_script_pubkey() {
-    //     crate::database::test::test_del_script_pubkey(get_tree());
-    // }
-
-    // #[test]
-    // fn test_utxo() {
-    //     crate::database::test::test_utxo(get_tree());
-    // }
-
-    // #[test]
-    // fn test_raw_tx() {
-    //     crate::database::test::test_raw_tx(get_tree());
-    // }
-
-    // #[test]
-    // fn test_tx() {
-    //     crate::database::test::test_tx(get_tree());
-    // }
-
-    // #[test]
-    // fn test_last_index() {
-    //     crate::database::test::test_last_index(get_tree());
-    // }
-
-    // #[test]
-    // fn test_sync_time() {
-    //     crate::database::test::test_sync_time(get_tree());
-    // }
 }

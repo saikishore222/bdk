@@ -469,13 +469,17 @@ mod test {
     }
     
     make_tests![
-        test_script_pubkey,
-        test_iter_script_pubkey,
-        test_del_script_pubkey,
-        test_utxo,
-        test_raw_tx,
-        test_tx,
-        test_last_index,
-        test_sync_time
+        @getter get_tree(),
+        @tests(
+            test_script_pubkey,
+            test_batch_script_pubkey,
+            test_iter_script_pubkey,
+            test_del_script_pubkey,
+            test_utxo,
+            test_raw_tx,
+            test_tx,
+            test_last_index,
+            test_sync_time
+        )
     ];
 }

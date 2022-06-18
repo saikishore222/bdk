@@ -976,7 +976,7 @@ pub fn migrate(conn: &Connection) -> rusqlite::Result<()> {
 
 #[cfg(test)]
 pub mod test {
-    use crate::database::SqliteDatabase;
+    use crate::{database::SqliteDatabase, make_tests};
     use std::time::{SystemTime, UNIX_EPOCH};
 
     fn get_database() -> SqliteDatabase {
@@ -986,48 +986,18 @@ pub mod test {
         SqliteDatabase::new(String::from(dir.to_str().unwrap()))
     }
 
-    #[test]
-    fn test_script_pubkey() {
-        crate::database::test::test_script_pubkey(get_database());
-    }
-
-    #[test]
-    fn test_batch_script_pubkey() {
-        crate::database::test::test_batch_script_pubkey(get_database());
-    }
-
-    #[test]
-    fn test_iter_script_pubkey() {
-        crate::database::test::test_iter_script_pubkey(get_database());
-    }
-
-    #[test]
-    fn test_del_script_pubkey() {
-        crate::database::test::test_del_script_pubkey(get_database());
-    }
-
-    #[test]
-    fn test_utxo() {
-        crate::database::test::test_utxo(get_database());
-    }
-
-    #[test]
-    fn test_raw_tx() {
-        crate::database::test::test_raw_tx(get_database());
-    }
-
-    #[test]
-    fn test_tx() {
-        crate::database::test::test_tx(get_database());
-    }
-
-    #[test]
-    fn test_last_index() {
-        crate::database::test::test_last_index(get_database());
-    }
-
-    #[test]
-    fn test_sync_time() {
-        crate::database::test::test_sync_time(get_database());
-    }
+    make_tests![
+        @getter get_database(),
+        @tests(
+            test_script_pubkey,
+            test_batch_script_pubkey,
+            test_iter_script_pubkey,
+            test_del_script_pubkey,
+            test_utxo,
+            test_raw_tx,
+            test_tx,
+            test_last_index,
+            test_sync_time
+        )
+    ];
 }
