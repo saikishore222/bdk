@@ -8,7 +8,6 @@
 // <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your option.
 // You may not use this file except in accordance with one or both of these
 // licenses.
-
 use std::convert::TryInto;
 
 use sled::{Batch, Tree};
@@ -419,19 +418,7 @@ impl BatchDatabase for Tree {
         Ok(self.apply_batch(batch)?)
     }
 }
-#[macro_export]
-#[doc(hidden)]
-macro_rules! make_tests {
-    ($($x:tt) , + $(,)?) => {
-        $(
-          #[test]
-          fn $x()
-          {
-            $crate::database::test::$x(get_tree());
-          }
-        )+
-    };
-}
+
 
 #[cfg(test)]
 mod test {
@@ -440,6 +427,8 @@ mod test {
     use std::time::{SystemTime, UNIX_EPOCH};
 
     use sled::{Db, Tree};
+
+    use crate::make_tests;
 
     static mut COUNT: usize = 0;
 
