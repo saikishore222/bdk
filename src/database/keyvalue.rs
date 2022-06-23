@@ -8,6 +8,7 @@
 // <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your option.
 // You may not use this file except in accordance with one or both of these
 // licenses.
+
 use std::convert::TryInto;
 
 use sled::{Batch, Tree};
@@ -419,7 +420,6 @@ impl BatchDatabase for Tree {
     }
 }
 
-
 #[cfg(test)]
 mod test {
     use lazy_static::lazy_static;
@@ -427,8 +427,6 @@ mod test {
     use std::time::{SystemTime, UNIX_EPOCH};
 
     use sled::{Db, Tree};
-
-    use crate::make_tests;
 
     static mut COUNT: usize = 0;
 
@@ -468,9 +466,9 @@ mod test {
         }
     }
     
-    make_tests![
-        @getter get_tree(),
-        @tests(
+    run_tests_with_constructor![
+        getter get_tree(),
+        tests(
             test_script_pubkey,
             test_batch_script_pubkey,
             test_iter_script_pubkey,

@@ -393,3 +393,17 @@ pub mod helpers {
         (wallet, descriptors, txid)
     }
 }
+
+#[macro_export]
+#[doc(hidden)]
+macro_rules! run_tests_with_constructor {
+    (getter $fn_name:ident(), tests ( $($x:tt) , + $(,)? )) => {
+        $(
+          #[test]
+          fn $x()
+          {
+            $crate::database::test::$x($fn_name());
+          }
+        )+
+    };
+}
