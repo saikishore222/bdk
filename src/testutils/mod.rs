@@ -243,7 +243,7 @@ macro_rules! doctest_wallet {
         let descriptors = testutils!(@descriptors (descriptor) (descriptor));
 
         let mut db = MemoryDatabase::new();
-        let txid = populate_test_db!(
+        let txid = populate_test_db(
             &mut db,
             testutils! {
                 @tx ( (@external descriptors, 0) => 500_000 ) (@confirmations 1)

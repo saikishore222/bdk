@@ -410,7 +410,6 @@ impl Database for Tree {
 
 impl BatchDatabase for Tree {
     type Batch = sled::Batch;
- 
     fn begin_batch(&self) -> Self::Batch {
         sled::Batch::default()
     }
@@ -465,7 +464,7 @@ mod test {
                 .unwrap()
         }
     }
-    
+
     run_tests_with_initialiser![
         init get_tree(),
         tests(

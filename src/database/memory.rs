@@ -479,10 +479,8 @@ impl ConfigurableDatabase for MemoryDatabase {
     }
 }
 
-
 #[cfg(test)]
 mod test {
-
     use super::MemoryDatabase;
 
     fn get_tree() -> MemoryDatabase {

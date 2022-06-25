@@ -976,7 +976,7 @@ pub fn migrate(conn: &Connection) -> rusqlite::Result<()> {
 
 #[cfg(test)]
 pub mod test {
-    use crate::{database::SqliteDatabase};
+    use crate::database::SqliteDatabase;
     use std::time::{SystemTime, UNIX_EPOCH};
 
     fn get_database() -> SqliteDatabase {
