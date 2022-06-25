@@ -219,7 +219,6 @@ pub(crate) trait DatabaseUtils: Database {
 
 impl<T: Database> DatabaseUtils for T {}
 
-
 #[cfg(test)]
 pub mod test {
     use std::str::FromStr;

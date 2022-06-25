@@ -986,8 +986,8 @@ pub mod test {
         SqliteDatabase::new(String::from(dir.to_str().unwrap()))
     }
 
-    run_tests_with_constructor![
-        getter get_database(),
+    run_tests_with_initialiser![
+        init get_database(),
         tests(
             test_script_pubkey,
             test_batch_script_pubkey,

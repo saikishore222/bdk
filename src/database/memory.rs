@@ -489,8 +489,8 @@ mod test {
         MemoryDatabase::new()
     }
 
-    run_tests_with_constructor![
-        getter get_tree(),
+    run_tests_with_initialiser![
+        init get_tree(),
         tests(
             test_script_pubkey,
             test_batch_script_pubkey,

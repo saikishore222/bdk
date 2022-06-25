@@ -396,8 +396,8 @@ pub mod helpers {
 
 #[macro_export]
 #[doc(hidden)]
-macro_rules! run_tests_with_constructor {
-    (getter $fn_name:ident(), tests ( $($x:tt) , + $(,)? )) => {
+macro_rules! run_tests_with_initialiser {
+    (init $fn_name:ident(), tests ( $($x:tt) , + $(,)? )) => {
         $(
           #[test]
           fn $x()
